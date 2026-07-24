@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>الاستعلام عن المرتب</title>
+
+<style>
+body{
+    margin:0;
+    font-family: "Cairo", Arial, sans-serif;
+    direction: rtl;
+    background: linear-gradient(135deg,#e3f2fd,#fce4ec);
+    text-align:center;
+}
+
+.container{
+    margin-top:60px;
+}
+
+h2{
+    color:#34495e;
+}
+
+.search-box{
+    margin:20px 0;
+}
+
+input{
+    padding:12px;
+    width:260px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    font-size:16px;
+}
+
+button{
+    padding:12px 25px;
+    border:none;
+    border-radius:8px;
+    background:#6c5ce7;
+    color:white;
+    font-size:15px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#5a4bd6;
+}
+
+.card{
+    background:white;
+    width:85%;
+    max-width:700px;
+    margin:30px auto;
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.1);
+    text-align:right;
+}
+
+.row{
+    display:flex;
+    justify-content:space-between;
+    padding:8px 0;
+    border-bottom:1px solid #eee;
+}
+
+.row:last-child{
+    border-bottom:none;
+}
+
+.label{
+    color:#7f8c8d;
+}
+
+.value{
+    font-weight:bold;
+    color:#2c3e50;
+}
+
+.net-salary{
+    margin-top:15px;
+    padding:15px;
+    border-radius:10px;
+    background:#d1f7e6;
+    color:#117a65;
+    font-size:20px;
+    text-align:center;
+    font-weight:bold;
+}
+
+.error{
+    color:red;
+    margin-top:20px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>الاستعلام عن المرتب</h2>
+
+    <div class="search-box">
+        <input type="text" id="insurance" placeholder="اكتب الرقم التأميني">
+        <button onclick="searchSalary()">بحث</button>
+    </div>
+
+    <div id="result"></div>
+</div>
+
+<!-- مكتبة PapaParse -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<script>
+async function searchSalary() {
+    const number = document.getElementById("insurance").value.trim();
+
+    if(number === ""){
+        document.getElementById("result").innerHTML = "<div class='error'>من فضلك ادخل الرقم التأميني</div>";
+        return;
+    }
+
+    try {
+        const response = await fetch("salaries.csv");
+        const csvData = await response.text();
+
+        const parsed = Papa.parse(csvData, {
+            header: true,
+            skipEmptyLines: true
+        });
+
+        // البحث حسب أول عمود (الرقم التأميني)
+        const firstColumn = parsed.meta.fields[0]; // أول عمود افتراضياً الرقم التأميني
+        const person = parsed.data.find(row => row[firstColumn].trim() === number);
+
+        if(person){
+            let html = '<div class="card">';
+
+            // عرض كل الأعمدة ديناميكي
+            parsed.meta.fields.forEach(field => {
+                if(field.toLowerCase().includes('صافي') || field.toLowerCase().includes('net')) {
+                    html += `<div class="net-salary">${field}: ${person[field]}</div>`;
+                } else {
+                    html += `<div class="row"><span class="label">${field}</span><span class="value">${person[field]}</span></div>`;
+                }
+            });
+
+            html += '</div>';
+            document.getElementById("result").innerHTML = html;
+        } else {
+            document.getElementById("result").innerHTML = "<div class='error'>الرقم غير موجود</div>";
+        }
+
+    } catch (err) {
+        document.getElementById("result").innerHTML = "<div class='error'>حدث خطأ في تحميل البيانات</div>";
+        console.error(err);
+    }
+}
+</script>
+
+</body>
+</html>
